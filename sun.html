@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>太陽校正測試</title>
+<style>
+  :root {
+    --bg: #fbfbfd; --card: #ffffff; --text: #1d1d1f; --muted: #6e6e73; --line: #d2d2d7;
+    --accent: #0071e3; --warn: #b64400; --warn-bg: #fff4e5; --ok: #1d7a3a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #000000; --card: #1c1c1e; --text: #f5f5f7; --muted: #a1a1a6; --line: #3a3a3c;
+      --accent: #2997ff; --warn: #ff9f0a; --warn-bg: #2c1f0a; --ok: #30d158;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #000000; --card: #1c1c1e; --text: #f5f5f7; --muted: #a1a1a6; --line: #3a3a3c;
+    --accent: #2997ff; --warn: #ff9f0a; --warn-bg: #2c1f0a; --ok: #30d158;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text); line-height: 1.5;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Helvetica Neue", sans-serif;
+  }
+  .stage { position: relative; height: 50vh; height: 50svh; background: #000; overflow: hidden; }
+  .stage video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .stage .placeholder {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #a1a1a6; font-size: 15px; padding: 16px; text-align: center;
+  }
+  .reticle { position: absolute; left: 50%; top: 50%; pointer-events: none; }
+  .reticle .ring {
+    position: absolute; border: 2px solid rgba(255,255,255,.9); border-radius: 50%;
+    transform: translate(-50%, -50%); width: 24px; height: 24px;
+  }
+  .reticle.on .ring { border-color: #30d158; }
+  .reticle .h, .reticle .v { position: absolute; background: rgba(255,255,255,.7); }
+  .reticle .h { width: 120px; height: 1px; transform: translate(-50%, 0); }
+  .reticle .v { width: 1px; height: 120px; transform: translate(0, -50%); }
+  .sunmark {
+    position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%;
+    border: 2px solid #ff9f0a; pointer-events: none; display: none;
+  }
+  .hud {
+    position: absolute; left: 12px; bottom: 10px; right: 12px; color: #fff; font-size: 13px;
+    text-shadow: 0 1px 2px rgba(0,0,0,.8); font-variant-numeric: tabular-nums;
+  }
+  main { max-width: 480px; margin: 0 auto; padding: 20px 16px 64px; }
+  .step { color: var(--muted); font-size: 14px; margin: 0; }
+  h1 { font-size: 24px; line-height: 1.2; margin: 4px 0 8px; font-weight: 700; }
+  .lead { margin: 0 0 16px; font-size: 16px; }
+  .big { font-size: 44px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .big small { font-size: 18px; color: var(--muted); font-weight: 600; }
+  .note { font-size: 14px; color: var(--muted); margin: 6px 0 0; }
+  .warn { background: var(--warn-bg); color: var(--warn); border-radius: 12px; padding: 10px 12px; font-size: 14px; margin-top: 12px; }
+  .warn:empty { display: none; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; margin-top: 16px; }
+  button {
+    font: inherit; font-size: 17px; border: 0; border-radius: 12px; padding: 14px 18px; width: 100%;
+    background: var(--accent); color: #fff; cursor: pointer; margin-top: 12px;
+  }
+  button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--line); }
+  button:disabled { opacity: .4; cursor: default; }
+  .row { display: flex; gap: 12px; }
+  .row > * { flex: 1; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; }
+  td, th { text-align: left; padding: 6px 4px 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; }
+  details summary { cursor: pointer; color: var(--accent); font-size: 15px; }
+  pre { white-space: pre-wrap; word-break: break-all; font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <video id="cam" playsinline muted autoplay></video>
+  <div class="placeholder" id="placeholder">按「開始」後，這裡會打開相機。</div>
+  <div class="reticle" id="reticle" hidden><div class="ring" id="ring"></div><div class="h"></div><div class="v"></div></div>
+  <div class="sunmark" id="sunmark"></div>
+  <div class="hud" id="hud"></div>
+</div>
+
+<main>
+  <p class="step" id="stepLabel">太陽校正測試</p>
+  <h1 id="title">不用指南針，用太陽量方向。</h1>
+  <p class="lead" id="lead">先讓相機對準太陽校正，再把手機背面貼在大門上量向。需要晴天，並允許相機、位置、動作與方向三個權限。這頁只在手機上計算，不會上傳任何資料。</p>
+
+  <div id="readout" hidden>
+    <div class="big" id="big">—</div>
+    <p class="note" id="sub"></p>
+  </div>
+  <div class="warn" id="warn"></div>
+
+  <button id="primary">開始</button>
+  <div class="row" id="secondaryRow" hidden>
+    <button class="secondary" id="recal">重新校正</button>
+    <button class="secondary" id="check">回到太陽檢查</button>
+  </div>
+
+  <div class="card" id="resultCard" hidden>
+    <table>
+      <thead><tr><th>#</th><th>向（磁北）</th><th>山向</th><th>真北</th></tr></thead>
+      <tbody id="results"></tbody>
+    </table>
+    <p class="note" id="summary"></p>
+  </div>
+
+  <div class="card">
+    <button class="secondary" id="copy" style="margin-top:0">複製測試結果</button>
+    <p class="note" id="copyMsg">複製後貼回給 Claude。</p>
+    <details style="margin-top:12px">
+      <summary>診斷資料</summary>
+      <pre id="diag"></pre>
+    </details>
+  </div>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var D2R = Math.PI / 180, R2D = 180 / Math.PI;
+  var MOUNTAINS = ['子','癸','丑','艮','寅','甲','卯','乙','辰','巽','巳','丙','午','丁','未','坤','申','庚','酉','辛','戌','乾','亥','壬'];
+  var ALIGN_RADIUS = 0.02;   // 太陽中心離十字中心的容許距離（畫面短邊比例，約 1°）
+  var $ = function (id) { return document.getElementById(id); };
+
+  function norm(d) { d = d % 360; return d < 0 ? d + 360 : d; }
+  function fmt(d) { return (Math.round(d * 10) / 10).toFixed(1); }
+  function angDiff(a, b) { var d = norm(a - b); return d > 180 ? d - 360 : d; }
+  function circMean(list) {
+    var x = 0, y = 0;
+    list.forEach(function (h) { x += Math.cos(h * D2R); y += Math.sin(h * D2R); });
+    return norm(Math.atan2(y, x) * R2D);
+  }
+  function mountainOf(d) {
+    var p = norm(d + 7.5), idx = Math.floor(p / 15) % 24, pos = p % 15;
+    return { name: MOUNTAINS[idx], edge: Math.min(pos, 15 - pos),
+             neighbor: pos < 7.5 ? MOUNTAINS[(idx + 23) % 24] : MOUNTAINS[(idx + 1) % 24] };
+  }
+
+  // NOAA 太陽位置演算法：方位角以真北為 0°，順時針
+  function sunPos(date, lat, lon) {
+    var jd = date.getTime() / 86400000 + 2440587.5;
+    var jc = (jd - 2451545) / 36525;
+    var L0 = norm(280.46646 + jc * (36000.76983 + jc * 0.0003032));
+    var M = 357.52911 + jc * (35999.05029 - 0.0001537 * jc);
+    var e = 0.016708634 - jc * (0.000042037 + 0.0000001267 * jc);
+    var C = Math.sin(M * D2R) * (1.914602 - jc * (0.004817 + 0.000014 * jc))
+          + Math.sin(2 * M * D2R) * (0.019993 - 0.000101 * jc) + Math.sin(3 * M * D2R) * 0.000289;
+    var omega = 125.04 - 1934.136 * jc;
+    var appLong = L0 + C - 0.00569 - 0.00478 * Math.sin(omega * D2R);
+    var obliq = 23 + (26 + (21.448 - jc * (46.815 + jc * (0.00059 - jc * 0.001813))) / 60) / 60
+              + 0.00256 * Math.cos(omega * D2R);
+    var decl = Math.asin(Math.sin(obliq * D2R) * Math.sin(appLong * D2R)) * R2D;
+    var y = Math.pow(Math.tan(obliq / 2 * D2R), 2);
+    var eot = 4 * R2D * (y * Math.sin(2 * L0 * D2R) - 2 * e * Math.sin(M * D2R)
+            + 4 * e * y * Math.sin(M * D2R) * Math.cos(2 * L0 * D2R)
+            - 0.5 * y * y * Math.sin(4 * L0 * D2R) - 1.25 * e * e * Math.sin(2 * M * D2R));
+    var utcMin = date.getUTCHours() * 60 + date.getUTCMinutes() + date.getUTCSeconds() / 60 + date.getUTCMilliseconds() / 60000;
+    var tst = ((utcMin + eot + 4 * lon) % 1440 + 1440) % 1440;
+    var ha = tst / 4 - 180;
+    var cosZ = Math.sin(lat * D2R) * Math.sin(decl * D2R) + Math.cos(lat * D2R) * Math.cos(decl * D2R) * Math.cos(ha * D2R);
+    var zen = Math.acos(Math.max(-1, Math.min(1, cosZ))) * R2D;
+    var den = Math.cos(lat * D2R) * Math.sin(zen * D2R);
+    var az = 180;
+    if (Math.abs(den) > 1e-9) {
+      var a = Math.acos(Math.max(-1, Math.min(1, (Math.sin(lat * D2R) * Math.cos(zen * D2R) - Math.sin(decl * D2R)) / den))) * R2D;
+      az = ha > 0 ? norm(a + 180) : norm(540 - a);
+    }
+    var el = 90 - zen, refr = 0, te = Math.tan(el * D2R);
+    if (el <= 85) {
+      if (el > 5) refr = 58.1 / te - 0.07 / Math.pow(te, 3) + 0.000086 / Math.pow(te, 5);
+      else if (el > -0.575) refr = 1735 + el * (-518.2 + el * (103.4 + el * (-12.79 + el * 0.711)));
+      else refr = -20.772 / te;
+    }
+    return { az: az, el: el + refr / 3600 };
+  }
+
+  // 台灣磁偏角（WMM2025 擬合，台灣本島、澎湖、金門 2026–2028 誤差 < 0.01°；負值＝偏西）
+  function declination(lat, lon, date) {
+    var x = lat - 24, y = lon - 121;
+    var t = date.getUTCFullYear() + (date - Date.UTC(date.getUTCFullYear(), 0, 1)) / 31557600000 - 2027;
+    return -4.75725 - 0.22783 * x - 0.13264 * y - 0.00148 * x * x - 0.00572 * x * y + 0.00609 * y * y - 0.03367 * t;
+  }
+  function inTaiwan(lat, lon) { return lat > 21.5 && lat < 26.6 && lon > 117.8 && lon < 122.5; }
+
+  // 後鏡頭光軸在地面座標的方位與仰角：R = Rz(alpha)·Rx(beta)·Ry(gamma)，光軸 = R·(0,0,−1)
+  function camAxis(a, b, g) {
+    var ca = Math.cos(a * D2R), sa = Math.sin(a * D2R), cb = Math.cos(b * D2R), sb = Math.sin(b * D2R);
+    var cg = Math.cos(g * D2R), sg = Math.sin(g * D2R);
+    var E = -ca * sg - sa * sb * cg, N = -sa * sg + ca * sb * cg, U = -cb * cg;
+    return { heading: norm(Math.atan2(E, N) * R2D), elev: Math.asin(Math.max(-1, Math.min(1, U))) * R2D };
+  }
+
+  // 狀態
+  var state = 'idle';
+  var pos = null, posErr = '';
+  var gyro = [];           // 最近 0.6 秒 {t, heading, elev}
+  var lastRel = null, lastAbs = null, relCount = 0, absCount = 0;
+  var cal = null;          // {t, sunAz, sunEl, gyroHeading, gyroElev, offset, magHeading}
+  var results = [], checks = [];
+  var sun = { found: false, aligned: false, dist: null, cover: 0 };
+  var video = $('cam'), stream = null;
+  var canvas = document.createElement('canvas'), ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+  var ua = navigator.userAgent;
+  var inApp = /Line\//i.test(ua) ? 'LINE' : /FBAN|FBAV/i.test(ua) ? 'Facebook' : /Instagram/i.test(ua) ? 'Instagram' : '';
+  var isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  function onRel(e) {
+    if (typeof e.alpha !== 'number' || typeof e.beta !== 'number') return;
+    relCount++; lastRel = e;
+    var c = camAxis(e.alpha, e.beta, e.gamma || 0), now = performance.now();
+    gyro.push({ t: now, heading: c.heading, elev: c.elev });
+    while (gyro.length && now - gyro[0].t > 600) gyro.shift();
+  }
+  function onAbs(e) { absCount++; lastAbs = e; }
+
+  function gyroNow() {
+    if (gyro.length < 3) return null;
+    var hs = gyro.map(function (s) { return s.heading; }), m = circMean(hs), spread = 0;
+    hs.forEach(function (h) { spread = Math.max(spread, Math.abs(angDiff(h, m))); });
+    var el = gyro.reduce(function (s, g) { return s + g.elev; }, 0) / gyro.length;
+    return { heading: m, elev: el, spread: spread };
+  }
+  function magCompass() {
+    // 只當對照：iOS 的 webkitCompassHeading，或 Android 絕對方位換算的光軸方位
+    if (lastRel && typeof lastRel.webkitCompassHeading === 'number') return { src: 'webkitCompassHeading', value: lastRel.webkitCompassHeading, accuracy: lastRel.webkitCompassAccuracy };
+    if (lastAbs && typeof lastAbs.alpha === 'number') return { src: 'absolute camAxis', value: camAxis(lastAbs.alpha, lastAbs.beta, lastAbs.gamma || 0).heading };
+    return null;
+  }
+
+  // 找畫面中最亮的區塊（太陽）
+  function detectSun() {
+    if (!video.videoWidth) return;
+    var w = 160, h = Math.round(160 * video.videoHeight / video.videoWidth);
+    canvas.width = w; canvas.height = h;
+    ctx.drawImage(video, 0, 0, w, h);
+    var d = ctx.getImageData(0, 0, w, h).data, max = 0, i;
+    for (i = 0; i < d.length; i += 4) { var l = 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]; if (l > max) max = l; }
+    if (max < 245) { sun = { found: false, aligned: false, dist: null, cover: 0 }; return; }
+    var th = max - 4, sx = 0, sy = 0, n = 0;
+    for (var p = 0, k = 0; p < d.length; p += 4, k++) {
+      var lum = 0.2126 * d[p] + 0.7152 * d[p + 1] + 0.0722 * d[p + 2];
+      if (lum >= th) { sx += k % w; sy += Math.floor(k / w); n++; }
+    }
+    var cx = sx / n + 0.5, cy = sy / n + 0.5, s = Math.min(w, h);
+    var dist = Math.hypot(cx - w / 2, cy - h / 2) / s, cover = n / (w * h);
+    sun = { found: cover < 0.15, aligned: cover < 0.15 && dist < ALIGN_RADIUS, dist: dist, cover: cover, cx: cx / w, cy: cy / h };
+  }
+
+  function placeOverlay() {
+    var st = $('stage'), dW = st.clientWidth, dH = st.clientHeight, vW = video.videoWidth, vH = video.videoHeight;
+    if (!vW) return;
+    var sc = Math.max(dW / vW, dH / vH), ox = (dW - vW * sc) / 2, oy = (dH - vH * sc) / 2;
+    var r = ALIGN_RADIUS * Math.min(vW, vH) * sc * 2;
+    $('ring').style.width = $('ring').style.height = Math.max(16, r) + 'px';
+    var m = $('sunmark');
+    if (sun.found && state !== 'measure') {
+      m.style.display = 'block';
+      m.style.left = (ox + sun.cx * vW * sc) + 'px';
+      m.style.top = (oy + sun.cy * vH * sc) + 'px';
+    } else { m.style.display = 'none'; }
+    $('reticle').classList.toggle('on', state === 'measure' ? false : sun.aligned);
+  }
+
+  function setStep(label, title, lead) { $('stepLabel').textContent = label; $('title').textContent = title; $('lead').textContent = lead; }
+
+  function tick() {
+    var g = gyroNow(), now = new Date(), w = [];
+    if (state === 'cal' || state === 'check') detectSun();
+    placeOverlay();
+    var sp = pos ? sunPos(now, pos.lat, pos.lon) : null;
+    $('hud').textContent = (sp ? '太陽 方位 ' + fmt(sp.az) + '°　仰角 ' + fmt(sp.el) + '°' : '等待定位') + (g ? '　鏡頭仰角 ' + fmt(g.elev) + '°' : '');
+
+    if (state === 'cal' || state === 'check') {
+      $('readout').hidden = false;
+      $('big').innerHTML = sun.aligned ? '對準了' : sun.found ? '再靠近中心' : '找太陽';
+      $('sub').textContent = sun.found ? '橘色圈是偵測到的太陽，移到白色圓圈裡面。' : '把相機轉向太陽。';
+      if (!pos) w.push(posErr || '正在取得位置。');
+      if (sp && sp.el < 2) w.push('太陽在地平線下，現在不能校正。');
+      if (sp && sp.el > 65) w.push('太陽太高（仰角 ' + fmt(sp.el) + '°），方位誤差會被放大。建議早上 10 點前或下午 2 點後再量。');
+      if (sp && g && sun.found && Math.abs(g.elev - sp.el) > 6) w.push('鏡頭仰角和太陽差 ' + fmt(Math.abs(g.elev - sp.el)) + '°，畫面裡的亮點可能不是太陽（例如燈或反光）。');
+      if (g && g.spread > 1.5) w.push('手機在晃，請拿穩。');
+      $('primary').disabled = !(pos && g && sun.found && sp && sp.el >= 2);
+    } else if (state === 'measure') {
+      $('readout').hidden = false;
+      if (g && cal) {
+        var trueFace = norm(g.heading + cal.offset), magFace = norm(trueFace - cal.decl), mf = mountainOf(magFace), ms = mountainOf(magFace + 180);
+        $('big').innerHTML = fmt(magFace) + '<small>°</small> ' + ms.name + '山' + mf.name + '向';
+        $('sub').textContent = '向（磁北）。鏡頭仰角 ' + fmt(g.elev) + '°，貼平時應接近 0°。校正後經過 ' + Math.round((Date.now() - cal.t) / 1000) + ' 秒。';
+        if (Math.abs(g.elev) > 3) w.push('手機沒有貼平：背面要整片貼在門或窗上，螢幕朝你。');
+        if (mf.edge < 3) w.push('落在「' + mf.name + '」和「' + mf.neighbor + '」交界 ' + fmt(mf.edge) + '° 內。');
+        if (Date.now() - cal.t > 180000) w.push('校正已超過 3 分鐘，陀螺儀可能累積誤差，建議重新校正。');
+        if (g.spread > 1.5) w.push('手機在晃，請貼穩。');
+      }
+      $('primary').disabled = !g;
+    }
+    $('warn').textContent = w.join(' ');
+  }
+
+  function startEverything() {
+    $('primary').disabled = true;
+    var orientP = (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function')
+      ? DeviceOrientationEvent.requestPermission() : Promise.resolve('granted');
+    orientP.then(function (s) {
+      if (s !== 'granted') throw new Error('沒有拿到「動作與方向」權限。');
+      window.addEventListener('deviceorientation', onRel);
+      if ('ondeviceorientationabsolute' in window) window.addEventListener('deviceorientationabsolute', onAbs);
+      return navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+    }).then(function (s) {
+      stream = s; video.srcObject = s; $('placeholder').hidden = true; $('reticle').hidden = false;
+      return video.play().catch(function () {});
+    }).then(function () {
+      navigator.geolocation.getCurrentPosition(function (p) {
+        pos = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy };
+        if (!inTaiwan(pos.lat, pos.lon)) posErr = '目前位置不在台灣，磁偏角公式不適用。';
+      }, function (err) {
+        posErr = '沒有拿到位置權限（' + err.message + '），無法計算太陽方位。';
+      }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 });
+      state = 'cal';
+      setStep('步驟 1／2', '對準太陽。', '讓太陽落在十字中央的圓圈裡，圓圈變綠就按「校正」。看螢幕就好，不要直視太陽。');
+      $('primary').textContent = '校正';
+      setInterval(tick, 100);
+      setTimeout(function () {
+        if (relCount === 0) $('warn').textContent = '讀不到陀螺儀。' + (inApp ? '請改用 ' + (isIOS ? 'Safari' : 'Chrome') + ' 開這個網址。' : '');
+      }, 3000);
+    }).catch(function (err) {
+      $('primary').disabled = false;
+      $('warn').textContent = (err && err.message ? err.message : String(err)) + (inApp ? ' 你正在用 ' + inApp + ' 內建瀏覽器，請改用 ' + (isIOS ? 'Safari' : 'Chrome') + ' 開。' : '');
+    });
+  }
+
+  function doCalibrate() {
+    var g = gyroNow(), now = new Date(), sp = sunPos(now, pos.lat, pos.lon);
+    var mag = magCompass();
+    cal = { t: Date.now(), sunAz: sp.az, sunEl: sp.el, gyroHeading: g.heading, gyroElev: g.elev, spread: g.spread,
+            offset: norm(sp.az - g.heading), decl: declination(pos.lat, pos.lon, now), aligned: sun.aligned,
+            sunDist: sun.dist, mag: mag };
+    state = 'measure';
+    setStep('步驟 2／2', '把手機背面貼在門上。', '走到大門或落地窗，手機背面整片貼在內側，螢幕朝你，按「確認」。可以換位置多按幾次。');
+    $('primary').textContent = '確認';
+    $('secondaryRow').hidden = false;
+  }
+
+  function doMeasure() {
+    var g = gyroNow(), trueFace = norm(g.heading + cal.offset), magFace = norm(trueFace - cal.decl);
+    results.push({ t: Date.now(), sinceCal: Math.round((Date.now() - cal.t) / 1000), gyroHeading: g.heading, elev: g.elev,
+                   spread: g.spread, trueFace: trueFace, magFace: magFace, mag: magCompass() });
+    drawResults();
+  }
+
+  function doCheck() {
+    var g = gyroNow(), sp = sunPos(new Date(), pos.lat, pos.lon), est = norm(g.heading + cal.offset);
+    checks.push({ sinceCal: Math.round((Date.now() - cal.t) / 1000), sunAz: sp.az, estimated: est, error: angDiff(est, sp.az), aligned: sun.aligned });
+    state = 'measure';
+    setStep('步驟 2／2', '把手機背面貼在門上。', '檢查結果記在下方。繼續量向，或重新校正。');
+    $('primary').textContent = '確認';
+    drawResults();
+  }
+
+  function drawResults() {
+    $('resultCard').hidden = results.length === 0 && checks.length === 0;
+    var tb = $('results'); tb.innerHTML = '';
+    results.forEach(function (r, i) {
+      var mf = mountainOf(r.magFace), ms = mountainOf(r.magFace + 180), tr = document.createElement('tr');
+      [String(i + 1), fmt(r.magFace) + '°', ms.name + '山' + mf.name + '向', fmt(r.trueFace) + '°'].forEach(function (c) {
+        var td = document.createElement('td'); td.textContent = c; tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    });
+    var s = [];
+    if (results.length) {
+      var faces = results.map(function (r) { return r.magFace; }), m = circMean(faces), spread = 0;
+      faces.forEach(function (f) { spread = Math.max(spread, Math.abs(angDiff(f, m))); });
+      var mf = mountainOf(m), ms = mountainOf(m + 180);
+      s.push('平均向 ' + fmt(m) + '°（磁北），' + ms.name + '山' + mf.name + '向，各筆離平均最多 ' + fmt(spread) + '°。');
+    }
+    checks.forEach(function (c) { s.push('太陽檢查（校正後 ' + c.sinceCal + ' 秒）：誤差 ' + fmt(c.error) + '°。'); });
+    $('summary').textContent = s.join(' ');
+  }
+
+  $('primary').addEventListener('click', function () {
+    if (state === 'idle') startEverything();
+    else if (state === 'cal') doCalibrate();
+    else if (state === 'measure') doMeasure();
+    else if (state === 'check') doCheck();
+  });
+  $('recal').addEventListener('click', function () {
+    state = 'cal'; $('secondaryRow').hidden = true;
+    setStep('步驟 1／2', '對準太陽。', '讓太陽落在十字中央的圓圈裡，圓圈變綠就按「校正」。');
+    $('primary').textContent = '校正';
+  });
+  $('check').addEventListener('click', function () {
+    state = 'check';
+    setStep('檢查', '再對準太陽一次。', '對準後按「檢查」，看陀螺儀從校正到現在累積了多少誤差。');
+    $('primary').textContent = '檢查';
+  });
+
+  function round(v, n) { return typeof v === 'number' ? +v.toFixed(n) : v; }
+  function diagText() {
+    return JSON.stringify({
+      ua: ua, inApp: inApp || null, secure: window.isSecureContext,
+      pos: pos ? { lat: round(pos.lat, 2), lon: round(pos.lon, 2), acc: Math.round(pos.acc) } : posErr || null,
+      events: { relative: relCount, absolute: absCount, relAbsoluteFlag: lastRel ? lastRel.absolute : null },
+      video: video.videoWidth ? video.videoWidth + 'x' + video.videoHeight : null,
+      sun: { found: sun.found, aligned: sun.aligned, dist: round(sun.dist, 3), cover: round(sun.cover, 3) },
+      calibration: cal ? { sunAz: round(cal.sunAz, 2), sunEl: round(cal.sunEl, 2), gyroHeading: round(cal.gyroHeading, 2),
+        gyroElev: round(cal.gyroElev, 2), spread: round(cal.spread, 2), offset: round(cal.offset, 2), decl: round(cal.decl, 2),
+        aligned: cal.aligned, sunDist: round(cal.sunDist, 3), mag: cal.mag } : null,
+      results: results.map(function (r) { return { sinceCal: r.sinceCal, gyroHeading: round(r.gyroHeading, 2), elev: round(r.elev, 2),
+        spread: round(r.spread, 2), trueFace: round(r.trueFace, 2), magFace: round(r.magFace, 2), mag: r.mag }; }),
+      checks: checks.map(function (c) { return { sinceCal: c.sinceCal, sunAz: round(c.sunAz, 2), estimated: round(c.estimated, 2), error: round(c.error, 2), aligned: c.aligned }; })
+    }, null, 2);
+  }
+  setInterval(function () { $('diag').textContent = diagText(); }, 700);
+  $('copy').addEventListener('click', function () {
+    var text = diagText(), fail = function () { $('copyMsg').textContent = '無法自動複製，請打開「診斷資料」手動複製。'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { $('copyMsg').textContent = '已複製，貼回給 Claude。'; }, fail);
+    else fail();
+  });
+
+  window.__sunTest = { sunPos: sunPos, declination: declination, camAxis: camAxis, mountainOf: mountainOf };
+})();
+</script>
+</body>
+</html>
