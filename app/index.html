@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#f5f5f7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>玄空飛星排盤</title>
+<link rel="stylesheet" href="app.css">
+<script type="module" src="app.js"></script>
+</head>
+<body>
+<div id="app">
+  <header class="navbar" id="navbar">
+    <button class="nav-back" id="navBack" hidden><svg class="ic"><use href="icons.svg#i-chevron-back"/></svg>返回</button>
+    <div class="nav-title" id="navTitle"></div>
+    <div></div>
+  </header>
+  <main class="stack" id="stack"></main>
+  <div id="camHolder"><video id="camVideo" playsinline muted autoplay></video></div>
+</div>
+
+<div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
+<section class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="grabber"></div>
+  <div class="sheet-head"><span></span><div class="sheet-title" id="sheetTitle"></div><button class="sheet-done" id="sheetDone">完成</button></div>
+  <div class="sheet-body" id="sheetBody"></div>
+</section>
+
+<!-- 1 歡迎 -->
+<template id="t-welcome">
+  <section class="screen"><div class="content welcome">
+    <div class="app-mark"><svg class="ic"><use href="icons.svg#i-compass"/></svg></div>
+    <h1 class="large-title">玄空飛星排盤</h1>
+    <ul class="features">
+      <li><svg class="ic"><use href="icons.svg#i-grid"/></svg><div><h3>免費排出你家的盤</h3><p>輸入落成年、量好方位，就能看到九宮飛星盤和初步結論。</p></div></li>
+      <li><svg class="ic"><use href="icons.svg#i-sunny"/></svg><div><h3>用太陽量方位</h3><p>不靠手機指南針，鐵門和鋼筋都不影響。</p></div></li>
+      <li><svg class="ic"><use href="icons.svg#i-shield-checkmark"/></svg><div><h3>只在你的手機上計算</h3><p>相機畫面和位置都不會上傳。</p></div></li>
+    </ul>
+    <div class="group" data-last-group hidden>
+      <button class="row" data-last><span class="grow">上次的量測</span><span class="value"></span><svg class="chev"><use href="icons.svg#i-chevron-forward"/></svg></button>
+    </div>
+    <div class="actions"><button class="btn btn-primary" data-start>開始</button></div>
+  </div></section>
+</template>
+
+<!-- 2 落成年 -->
+<template id="t-year">
+  <section class="screen"><div class="content">
+    <h1 class="large-title">房子哪一年落成？</h1>
+    <p class="lead">看建物謄本上的「建築完成日期」。</p>
+    <div class="group wheel-wrap">
+      <div class="wheel-band"></div>
+      <div class="wheel" tabindex="0" aria-label="落成年"><ul></ul></div>
+    </div>
+    <div class="seg-block" data-lichun hidden>
+      <p>這一年 2 月 4 日立春換運，落成日期在哪一邊？</p>
+      <div class="seg"><button data-v="before">立春以前</button><button data-v="after">立春以後</button></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" data-next>下一步</button>
+      <button class="btn btn-text" data-where>落成年去哪找？</button>
+    </div>
+  </div></section>
+</template>
+
+<!-- 3 權限 -->
+<template id="t-permissions">
+  <section class="screen"><div class="content">
+    <h1 class="large-title">需要三個權限</h1>
+    <p class="lead">量方位時會用到。資料只在你的手機上計算，不會上傳。</p>
+    <div class="group icons">
+      <div class="row"><span class="row-icon"><svg class="ic"><use href="icons.svg#i-camera"/></svg></span><span class="grow">相機<span class="sub">找到太陽在畫面裡的位置</span></span></div>
+      <div class="row"><span class="row-icon"><svg class="ic"><use href="icons.svg#i-location"/></svg></span><span class="grow">位置<span class="sub">算出太陽此刻在哪個方位</span></span></div>
+      <div class="row"><span class="row-icon"><svg class="ic"><use href="icons.svg#i-phone-portrait"/></svg></span><span class="grow">動作與方向<span class="sub">記錄手機轉了幾度</span></span></div>
+    </div>
+    <div class="notice" role="alert"></div>
+    <div class="actions"><button class="btn btn-primary" data-go>繼續</button></div>
+  </div></section>
+</template>
+
+<!-- 4 8 字校正 -->
+<template id="t-calibrate8">
+  <section class="screen"><div class="content">
+    <h1 class="large-title">在空中畫幾次 8 字</h1>
+    <p class="lead">先校正手機羅盤，等一下才能帶你找到太陽。</p>
+    <svg class="figure8" viewBox="0 0 220 110" aria-hidden="true">
+      <path id="f8path" d="M110,55 C140,12 200,12 200,55 C200,98 140,98 110,55 C80,12 20,12 20,55 C20,98 80,98 110,55 Z"/>
+      <circle r="8"><animateMotion dur="2.6s" repeatCount="indefinite"><mpath href="#f8path"/></animateMotion></circle>
+    </svg>
+    <div class="group"><div class="row"><span class="grow">羅盤精度</span><span class="value" data-acc>—</span></div></div>
+    <p class="group-footer">量方位靠的是太陽，羅盤只用來帶你找太陽，精度沒有變好也沒關係。</p>
+    <div class="actions">
+      <p class="hint" style="text-align:center;margin:0 0 8px">畫完後把手機平放，再按下一步。</p>
+      <button class="btn btn-primary" data-next disabled>下一步</button>
+    </div>
+  </div></section>
+</template>
+
+<!-- 5 太陽校正 -->
+<template id="t-sun">
+  <section class="screen camera">
+    <div class="cam-stage">
+      <div class="reticle"><div class="ring"></div><div class="h"></div><div class="v"></div></div>
+      <div class="sunmark" hidden></div>
+      <div class="guide" hidden><svg class="ic"><use href="icons.svg#i-arrow-up"/></svg><span></span></div>
+      <div class="hud"></div>
+    </div>
+    <div class="cam-panel">
+      <h1>對準太陽</h1>
+      <p class="lead">讓太陽落進中間的圓圈，圓圈變綠就按校正。看螢幕就好，不要直視太陽。</p>
+      <p class="status" data-status></p>
+      <div class="notice" role="alert"></div>
+      <div class="actions">
+        <button class="btn btn-primary" data-go disabled>校正</button>
+        <button class="btn btn-text" data-nosun>看不到太陽</button>
+      </div>
+    </div>
+  </section>
+</template>
+
+<!-- 6 量向 -->
+<template id="t-door">
+  <section class="screen"><div class="content">
+    <h1 class="large-title">底邊頂住大門</h1>
+    <p class="lead">站在屋內，手機平放、螢幕朝上，把底邊整條貼住大門，頂端指向屋內。</p>
+    <svg class="door-art" viewBox="0 0 280 170" aria-hidden="true">
+      <text x="140" y="14" text-anchor="middle">大門（屋內這一側）</text>
+      <rect class="wall" x="10" y="22" width="260" height="8" rx="2"/>
+      <rect class="phone" x="112" y="31" width="56" height="104" rx="11"/>
+      <rect class="island" x="129" y="120" width="22" height="6" rx="3"/>
+      <path class="arrow" d="M140,153 l-7,-8 h4 v-7 h6 v7 h4 z"/>
+      <text x="182" y="128">手機頂端</text>
+      <text x="140" y="168" text-anchor="middle">屋內</text>
+    </svg>
+    <div class="readout"><div class="pan" data-pan>—</div><div class="deg" data-deg></div></div>
+    <div class="group">
+      <div class="row"><span class="grow">手機放平</span><span class="value" data-flat>—</span></div>
+      <div class="row"><span class="grow">拿穩</span><span class="value" data-steady>—</span></div>
+      <div class="row"><span class="grow">校正後經過</span><span class="value" data-age>—</span></div>
+    </div>
+    <p class="group-footer" data-count></p>
+    <div class="notice" role="alert"></div>
+    <div class="actions">
+      <button class="btn btn-primary" data-rec disabled>記錄這一筆</button>
+      <button class="btn btn-text" data-done hidden>完成，看結果</button>
+      <button class="btn btn-text" data-recal>重新校正</button>
+    </div>
+  </div></section>
+</template>
+
+<!-- 7 量測結果 -->
+<template id="t-result">
+  <section class="screen"><div class="content">
+    <h1 class="large-title" data-pan>—</h1>
+    <p class="lead" data-deg></p>
+    <div class="notice info" data-edge hidden></div>
+    <div class="group">
+      <div class="row"><span class="grow">量法</span><span class="value" data-method></span></div>
+      <div class="row" data-records-row><span class="grow">記錄</span><span class="value" data-records></span></div>
+      <div class="row" data-compass-row><span class="grow">手機羅盤在大門</span><span class="value" data-compass></span></div>
+    </div>
+    <p class="group-footer" data-compass-note hidden>手機羅盤會被鐵門、鋼筋和電器干擾，所以量方位改用太陽。</p>
+    <div class="actions">
+      <button class="btn btn-primary" data-chart>看我家的盤</button>
+      <button class="btn btn-text" data-again>重新量</button>
+    </div>
+  </div></section>
+</template>
+
+<!-- 8 你家的盤（段 2 前的暫時畫面） -->
+<template id="t-chart">
+  <section class="screen"><div class="content">
+    <h1 class="large-title">你家的盤</h1>
+    <p class="lead">排盤功能還在製作，量測結果已經存在這支手機上。</p>
+  </div></section>
+</template>
+
+<!-- 夜間或看不到太陽 -->
+<template id="t-night">
+  <section class="screen"><div class="content">
+    <h1 class="large-title">現在看不到太陽</h1>
+    <p class="lead"></p>
+    <div class="group icons">
+      <button class="row" data-manual><span class="row-icon"><svg class="ic"><use href="icons.svg#i-keypad"/></svg></span><span class="grow">手動輸入羅盤度數<span class="sub">已經用羅盤量過的人</span></span><svg class="chev"><use href="icons.svg#i-chevron-forward"/></svg></button>
+      <button class="row" disabled><span class="row-icon"><svg class="ic"><use href="icons.svg#i-map"/></svg></span><span class="grow">Google 地圖截圖<span class="sub">製作中</span></span></button>
+    </div>
+    <div class="actions"><button class="btn btn-text" data-later>晚點再量</button></div>
+  </div></section>
+</template>
+
+<!-- 手動輸入 -->
+<template id="t-manual">
+  <section class="screen"><div class="content">
+    <h1 class="large-title">輸入向的度數</h1>
+    <p class="lead">站在屋內往門外看，羅盤量到的磁北度數。</p>
+    <label class="deg-input"><input type="text" inputmode="decimal" autocomplete="off" placeholder="0.0" aria-label="向的度數"><span>°</span></label>
+    <div class="readout"><div class="pan" data-pan>—</div></div>
+    <div class="notice info" data-edge hidden></div>
+    <div class="actions"><button class="btn btn-primary" data-go disabled>確認</button></div>
+  </div></section>
+</template>
+
+<!-- Sheet：落成年去哪找 -->
+<template id="s-where" data-title="落成年去哪找？">
+  <p>建物登記謄本上的「建築完成日期」，或使用執照上的日期。</p>
+  <p>謄本可以到地政事務所申請，也可以用全國地政電子謄本系統線上申請。</p>
+  <p>真的查不到時，先選最接近的年份。</p>
+</template>
+</body>
+</html>
