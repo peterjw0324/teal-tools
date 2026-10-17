@@ -169,11 +169,23 @@
   </div></section>
 </template>
 
-<!-- 8 你家的盤（段 2 前的暫時畫面） -->
+<!-- 8 你家的盤 -->
 <template id="t-chart">
   <section class="screen"><div class="content">
-    <h1 class="large-title">你家的盤</h1>
-    <p class="lead">排盤功能還在製作，量測結果已經存在這支手機上。</p>
+    <h1 class="large-title" data-title>—</h1>
+    <p class="lead" data-sub></p>
+    <div class="notice info" data-sample hidden>範例盤：排盤引擎完成前，先用試算表裡的範例（九運丑山未向下卦）。</div>
+    <div class="pan-grid" data-grid></div>
+    <p class="group-footer">每格左邊是山星（人丁、健康），右邊是向星（財運），下方中文數字是運星。點一格看詳細。</p>
+    <h2 class="section-title">初步結論</h2>
+    <div class="group">
+      <div class="row"><span class="grow">格局</span><span class="value" data-pattern></span></div>
+      <div class="row"><span class="grow">生氣方</span><span class="value" data-shengqi></span></div>
+      <div class="row"><span class="grow">需留意</span><span class="value" data-caution></span></div>
+    </div>
+    <h2 class="section-title">九宮</h2>
+    <div class="group" data-list></div>
+    <p class="group-footer">強弱與佈置建議是規則草案，確認後再定稿。</p>
   </div></section>
 </template>
 
@@ -201,6 +213,9 @@
     <div class="actions"><button class="btn btn-primary" data-go disabled>確認</button></div>
   </div></section>
 </template>
+
+<!-- Sheet：單一宮位（內容由 app.js 填入） -->
+<template id="s-palace"></template>
 
 <!-- Sheet：落成年去哪找 -->
 <template id="s-where" data-title="落成年去哪找？">

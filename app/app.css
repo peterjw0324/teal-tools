@@ -163,4 +163,26 @@ button.row:active:not(:disabled) { background: #e8e8ed; }
 .sheet-done { justify-self: end; border: 0; background: none; color: var(--teal-link); font-size: 17px; font-weight: 600; }
 .sheet-body p { font-size: 17px; line-height: 1.47; margin: 12px 0 0; }
 
+/* 你家的盤 */
+.section-title { font-size: 13px; font-weight: 400; color: var(--ink-3); margin: 28px 16px 0; }
+.section-title + .group { margin-top: 6px; }
+.pan-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-top: 20px; border: 1px solid var(--hairline); border-radius: 12px; overflow: hidden; background: var(--hairline); }
+.cell { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 8px 4px 7px; border: 0; background: var(--card); }
+.cell:active { background: #e8e8ed; }
+.cell.face { background: #eef7f7; }
+.cell-head { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--ink-3); }
+.cell-head em { font-style: normal; font-size: 11px; font-weight: 600; color: var(--teal-deep); }
+.stars { display: flex; gap: 16px; }
+.star { display: flex; flex-direction: column; align-items: center; min-width: 30px; }
+.star b { font-size: 28px; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; }
+.star small { margin-top: 4px; font-size: 10px; line-height: 1; color: var(--ink-4); white-space: nowrap; }
+.star small.wealth { color: var(--teal-deep); }
+.star small.bad { color: var(--wen); }
+.yun { font-size: 12px; color: var(--ink-4); }
+.row .role { font-style: normal; font-size: 13px; font-weight: 600; color: var(--teal-deep); margin-left: 6px; }
+.st-強 { color: var(--teal-deep); }
+.st-弱 { color: var(--wen); }
+.sheet-sub { margin: 0 0 4px; font-size: 15px; color: var(--ink-3); text-align: center; }
+.advice { margin: 8px 16px 0; font-size: 15px; line-height: 1.5; color: var(--ink-2); text-wrap: pretty; }
+
 #camHolder { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }

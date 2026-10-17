@@ -3,6 +3,9 @@ import { panFromFace } from './lib/mountains.js';
 import { sunPos, declination, inTaiwan, TAIPEI } from './lib/sun.js';
 import * as sensors from './lib/sensors.js';
 import * as store from './lib/store.js';
+import { guaOf, gridOrder, GUAS, DIRS } from './lib/palaces.js';
+import { tagsOf, strengthOf, starNote, shanAdvice, xiangAdvice, summary } from './lib/stars.js';
+import { SAMPLE } from './lib/sample-chart.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const fmt = (d) => (Math.round(d * 10) / 10).toFixed(1);
@@ -102,10 +105,12 @@ const sheet = $('#sheet');
 const backdrop = $('#sheetBackdrop');
 let dragY = null;
 
-function openSheet(id) {
+function openSheet(id, opts = {}) {
   const tpl = document.getElementById(`s-${id}`);
   $('#sheetBody').replaceChildren(tpl.content.cloneNode(true));
-  $('#sheetTitle').textContent = tpl.dataset.title || '';
+  $('#sheetTitle').textContent = opts.title ?? tpl.dataset.title ?? '';
+  opts.fill?.($('#sheetBody'));
+  sheet.scrollTop = 0;
   sheet.hidden = false;
   backdrop.hidden = false;
   void sheet.offsetWidth;
@@ -417,7 +422,63 @@ const SCREENS = {
     return { title: '量測結果' };
   },
 
-  chart() {
+  chart(el) {
+    const c = SAMPLE;   // 排盤引擎完成前先用試算表的範例盤
+    const NUM = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+    const SHORT = { 財星: '財', 生氣星: '生', 退氣星: '退', 兇星: '兇', 文昌: '文', 中性: '中' };
+    const sitG = guaOf(c.sit), faceG = guaOf(c.face);
+    const role = (g) => (g === faceG ? '向首' : g === sitG ? '坐山' : '');
+    const name = (g) => (g === '中' ? '中宮' : `${g}・${DIRS[g]}`);
+    const tone = (n) => {
+      const t = tagsOf(n);
+      if (t.includes('兇星')) return 'bad';
+      return t.includes('財星') && !t.includes('退氣星') ? 'wealth' : '';
+    };
+    const star = (n) => `<span class="star"><b>${n}</b><small class="${tone(n)}">${tagsOf(n).map((t) => SHORT[t]).join('・')}</small></span>`;
+    const sv = (area, n) => `<span class="st-${strengthOf(n)}">${area}${strengthOf(n)}</span>`;
+
+    $('[data-title]', el).textContent = `${c.sit}山${c.face}向`;
+    $('[data-sub]', el).textContent = `${NUM[c.period]}運・${c.kind}`;
+    $('[data-sample]', el).hidden = c !== SAMPLE;
+
+    $('[data-grid]', el).innerHTML = gridOrder(faceG).map((g) => {
+      const p = c.palaces[g], r = role(g);
+      return `<button class="cell${g === faceG ? ' face' : ''}" data-g="${g}" aria-label="${name(g)}，山星 ${p.shan}，向星 ${p.xiang}，運星${NUM[p.yun]}">`
+        + `<span class="cell-head">${g === '中' ? '中宮' : `${g} ${DIRS[g]}`}${r ? `<em>${r === '向首' ? '向' : '坐'}</em>` : ''}</span>`
+        + `<span class="stars">${star(p.shan)}${star(p.xiang)}</span><span class="yun">${NUM[p.yun]}</span></button>`;
+    }).join('');
+
+    const s = summary(c);
+    const names = (list) => list.map((g) => `${g}（${DIRS[g]}）`).join('、');
+    $('[data-pattern]', el).textContent = s.pattern || '—';
+    $('[data-shengqi]', el).textContent = s.shengqi.length ? names(s.shengqi) : '無';
+    $('[data-caution]', el).textContent = s.caution.length ? `${names(s.caution)}・五黃` : '無';
+
+    const k = GUAS.indexOf(faceG);
+    const order = [...GUAS.map((_, i) => GUAS[(k + i) % 8]), '中'];
+    $('[data-list]', el).innerHTML = order.map((g) => {
+      const p = c.palaces[g], r = role(g);
+      return `<button class="row" data-g="${g}"><span class="grow">${name(g)}${r ? `<em class="role">${r}</em>` : ''}`
+        + `<span class="sub">山 ${p.shan}　${tagsOf(p.shan).join('・')}<br>向 ${p.xiang}　${tagsOf(p.xiang).join('・')}</span></span>`
+        + `<span class="value">${sv('人丁', p.shan)}・${sv('財運', p.xiang)}</span><svg class="chev"><use href="icons.svg#i-chevron-forward"/></svg></button>`;
+    }).join('');
+
+    const block = (label, n, area, advice) => `<div class="group"><div class="row"><span class="grow">${label} ${n}`
+      + `<span class="sub">${tagsOf(n).join('・')}${starNote(n) ? `：${starNote(n)}` : ''}</span></span>`
+      + `<span class="value"><span class="st-${strengthOf(n)}">${area}${strengthOf(n)}</span></span></div></div><p class="advice">${advice}</p>`;
+    function openPalace(g) {
+      const p = c.palaces[g];
+      openSheet('palace', {
+        title: name(g),
+        fill(body) {
+          body.innerHTML = `<p class="sheet-sub">${[role(g), `運星${NUM[p.yun]}`].filter(Boolean).join('・')}</p>`
+            + block('山星', p.shan, '人丁', shanAdvice(p.shan))
+            + block('向星', p.xiang, '財運', xiangAdvice(p.xiang))
+            + '<p class="group-footer">強弱與佈置建議是規則草案，確認後再定稿。</p>';
+        },
+      });
+    }
+    el.addEventListener('click', (e) => { const b = e.target.closest('[data-g]'); if (b) openPalace(b.dataset.g); });
     return { title: '你家的盤' };
   },
 
