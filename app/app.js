@@ -6,6 +6,7 @@ import * as store from './lib/store.js';
 import { guaOf, gridOrder, GUAS, DIRS } from './lib/palaces.js';
 import { tagsOf, strengthOf, starNote, shanAdvice, xiangAdvice, summary } from './lib/stars.js';
 import { SAMPLE } from './lib/sample-chart.js';
+import { chart as computeChart } from './lib/xuankong.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const fmt = (d) => (Math.round(d * 10) / 10).toFixed(1);
@@ -423,7 +424,10 @@ const SCREENS = {
   },
 
   chart(el) {
-    const c = SAMPLE;   // 排盤引擎完成前先用試算表的範例盤
+    // 交運年（1984、2004、2024）選「立春以前」算前一運；試算表只看年份，這裡依立春交運
+    const m = state.measure;
+    const year = state.year && BOUNDARY_YEARS.includes(state.year) && state.lichun === 'before' ? state.year - 1 : state.year;
+    const c = year && m ? computeChart({ year, sitDeg: norm(m.faceMag + 180) }) : SAMPLE;
     const NUM = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
     const SHORT = { 財星: '財', 生氣星: '生', 退氣星: '退', 兇星: '兇', 文昌: '文', 中性: '中' };
     const sitG = guaOf(c.sit), faceG = guaOf(c.face);
@@ -438,7 +442,7 @@ const SCREENS = {
     const sv = (area, n) => `<span class="st-${strengthOf(n)}">${area}${strengthOf(n)}</span>`;
 
     $('[data-title]', el).textContent = `${c.sit}山${c.face}向`;
-    $('[data-sub]', el).textContent = `${NUM[c.period]}運・${c.kind}`;
+    $('[data-sub]', el).textContent = c === SAMPLE ? `${NUM[c.period]}運・${c.kind}` : `${NUM[c.period]}運・${c.kind}・${state.year} 年落成`;
     $('[data-sample]', el).hidden = c !== SAMPLE;
 
     $('[data-grid]', el).innerHTML = gridOrder(faceG).map((g) => {
@@ -450,7 +454,8 @@ const SCREENS = {
 
     const s = summary(c);
     const names = (list) => list.map((g) => `${g}（${DIRS[g]}）`).join('、');
-    $('[data-pattern]', el).textContent = s.pattern || '—';
+    const palaceShort = (g) => (g === '中' ? '中宮' : g);
+    $('[data-pattern]', el).textContent = s.pattern || `山星在${palaceShort(s.shanAt)}，向星在${palaceShort(s.xiangAt)}`;
     $('[data-shengqi]', el).textContent = s.shengqi.length ? names(s.shengqi) : '無';
     $('[data-caution]', el).textContent = s.caution.length ? `${names(s.caution)}・五黃` : '無';
 

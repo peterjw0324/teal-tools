@@ -67,8 +67,11 @@ export function pattern(chart) {
 // 免費的初步結論：格局、生氣方（向星為九運下一運）、需留意（五黃）
 export function summary(chart) {
   const outer = GUAS.filter((g) => chart.palaces[g]);
+  const at = (key) => Object.keys(chart.palaces).find((g) => chart.palaces[g][key] === chart.period);
   return {
     pattern: pattern(chart),
+    shanAt: at('shan'),     // 當運山星所在的宮
+    xiangAt: at('xiang'),   // 當運向星所在的宮
     shengqi: outer.filter((g) => chart.palaces[g].xiang === NEXT_STAR),
     caution: outer.filter((g) => chart.palaces[g].shan === 5 || chart.palaces[g].xiang === 5),
   };
