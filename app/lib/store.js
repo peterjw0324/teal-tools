@@ -1,6 +1,14 @@
 const KEY = 'teal-xuankong-v1';
 
+let memory = null;   // 示範模式：只存在記憶體
+
+export function useMemory() {
+  const m = new Map();
+  memory = { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: (k) => m.delete(k) };
+}
+
 function storage() {
+  if (memory) return memory;
   try { return globalThis.window ? window.localStorage : null; } catch { return null; }
 }
 

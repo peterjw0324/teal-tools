@@ -17,6 +17,8 @@ const BOUNDARY_YEARS = [1984, 2004, 2024];
 const camVideo = $('#camVideo');
 const camHolder = $('#camHolder');
 const session = { pos: null, roughOffset: null, cal: null, records: [] };
+const DEMO = new URLSearchParams(location.search).get('demo');   // 說明頁的示範模式
+if (DEMO) store.useMemory();
 let state = store.load();
 function setState(patch) { state = { ...state, ...patch }; store.save(state); }
 
@@ -521,4 +523,11 @@ const SCREENS = {
   },
 };
 
-setRoot('welcome');
+if (DEMO) {
+  const demo = await import('./lib/demo.js');
+  demo.install();
+  setRoot('welcome');
+  demo.run(DEMO);
+} else {
+  setRoot('welcome');
+}

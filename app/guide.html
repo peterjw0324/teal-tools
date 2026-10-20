@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>怎麼用玄空飛星排盤</title>
+<style>
+  /* 色票沿用 teal-pdp.css；iPhone Air 外框與 iOS 26 Safari 尺寸沿用 tools/device-frame.html（依 Peter 的截圖量測） */
+  :root {
+    --teal: #009193; --teal-deep: #00787a; --teal-link: #007879;
+    --ink: #1d1d1f; --ink-3: #6e6e73; --ink-5: #a1a1a6;
+    --canvas: #f5f5f7; --fill: rgba(118, 118, 128, .12);
+    --sf: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft JhengHei', 'Helvetica Neue', Arial, sans-serif;
+    --s: .58;                       /* 外框縮放 */
+    --gutter: max(20px, calc((100vw - 980px) / 2));
+  }
+  @media (min-width: 734px) { :root { --s: .62; } }
+  @media (min-width: 1069px) { :root { --s: .66; } }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #fff; color: var(--ink); font-family: var(--sf); -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; }
+  button { font: inherit; color: inherit; }
+  main { padding: 56px 0 72px; }
+  .g-head { padding: 0 var(--gutter); max-width: calc(980px + 2 * var(--gutter)); }
+  .eyebrow { margin: 0 0 8px; font-size: 17px; font-weight: 600; color: var(--teal-deep); }
+  h1 { margin: 0; font-size: 32px; line-height: 1.16; font-weight: 700; text-wrap: pretty; }
+  .lead { margin: 14px 0 0; max-width: 34em; font-size: 17px; line-height: 1.47; color: var(--ink-3); text-wrap: pretty; }
+  @media (min-width: 734px) { h1 { font-size: 48px; line-height: 1.08; } .lead { font-size: 19px; } }
+
+  /* 卡片廊 */
+  .gallery { display: flex; gap: 24px; margin-top: 40px; padding: 0 var(--gutter) 8px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 var(--gutter); scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .gallery::-webkit-scrollbar { display: none; }
+  .g-card { flex: none; width: calc(460.53px * var(--s)); scroll-snap-align: start; }
+  .g-num { margin: 22px 0 6px; font-size: 14px; font-weight: 600; color: var(--teal-deep); }
+  .g-card h2 { margin: 0; font-size: 21px; line-height: 1.24; font-weight: 700; }
+  .g-card p.text { margin: 8px 0 0; font-size: 15px; line-height: 1.47; color: var(--ink-3); text-wrap: pretty; }
+  .g-nav { display: flex; justify-content: flex-end; gap: 14px; padding: 20px var(--gutter) 0; max-width: calc(980px + 2 * var(--gutter)); }
+  .g-nav button { width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--fill); display: grid; place-items: center; cursor: pointer; }
+  .g-nav button:disabled { opacity: .35; cursor: default; }
+  .g-nav svg { width: 18px; height: 18px; color: var(--ink); }
+  .g-foot { padding: 28px var(--gutter) 0; max-width: calc(980px + 2 * var(--gutter)); font-size: 14px; line-height: 1.5; color: var(--ink-3); }
+
+  /* iPhone Air：外框圖的螢幕 420 × 912 pt；狀態列 68 pt；網址列展開時 fixed 版面底部在 814 pt */
+  .g-phone { position: relative; width: calc(460.53px * var(--s)); height: calc(945.89px * var(--s)); }
+  .phone { position: absolute; left: 0; top: 0; width: 460.53px; height: 945.89px; transform: scale(var(--s)); transform-origin: 0 0; }
+  .frame { position: absolute; left: 0; top: 0; width: 460.53px; height: 945.89px; z-index: 10; pointer-events: none; }
+  .screen { position: absolute; left: 20.26px; top: 16.64px; width: 420px; height: 912px; overflow: hidden; background: var(--canvas); isolation: isolate; }
+  .status { position: absolute; left: 0; top: 0; width: 420px; height: 68px; background: var(--canvas); color: #000; }
+  .status svg { position: absolute; left: 0; top: 0; }
+  .screen iframe { position: absolute; left: 0; top: 68px; width: 420px; height: 746px; border: 0; background: var(--canvas); pointer-events: none; opacity: 0; transition: opacity .5s ease; }
+  .g-phone.ready iframe { opacity: 1; }
+  .glass { position: absolute; z-index: 4; top: 830px; height: 48px; margin: 0; padding: 0; border: 0; color: #fff; border-radius: 999px;
+    background: linear-gradient(rgb(255 255 255 / 8.5%), rgb(255 255 255 / 0%) 6px, rgb(255 255 255 / 0%) calc(100% - 7px), rgb(255 255 255 / 9%)), rgb(95 95 96 / 92%);
+    box-shadow: inset 0 0 0 .34px rgb(255 255 255 / 10%), 0 4px 16px rgb(0 0 0 / 2.2%); }
+  .glass svg { position: absolute; display: block; }
+  .back { left: 33.33px; width: 49.33px; }
+  .back svg { left: 18px; top: 15px; width: 11.06px; height: 18.66px; color: rgb(255 255 255 / 26.5%); }
+  .tabs { left: 337.33px; width: 49.33px; }
+  .tabs svg { left: 12.55px; top: 12.92px; width: 23.6px; height: 22.5px; }
+  .url { left: 89.33px; width: 241.33px; overflow: hidden; }
+  .url .pagemenu { left: 16.67px; top: 13px; width: 17px; height: 20px; }
+  .url .reload { left: 211.01px; top: 14.66px; width: 15.17px; height: 18px; }
+  .host { position: absolute; left: 0; right: 0; top: 14.66px; text-align: center; white-space: nowrap; font: 500 17px/20px -apple-system, system-ui, sans-serif; }
+</style>
+</head>
+<body>
+<main>
+  <header class="g-head">
+    <p class="eyebrow">怎麼用</p>
+    <h1>一步一步，排出你家的盤。</h1>
+    <p class="lead">用手機的 Safari 打開就能用，不用下載 App。晴天白天，用太陽量方位最準。</p>
+  </header>
+  <div class="gallery" id="gallery" role="list"></div>
+  <div class="g-nav">
+    <button id="prev" aria-label="上一步"><svg><use href="icons.svg#i-chevron-back"/></svg></button>
+    <button id="next" aria-label="下一步"><svg><use href="icons.svg#i-chevron-forward"/></svg></button>
+  </div>
+  <p class="g-foot">晚上或陰天看不到太陽時，可以改成手動輸入羅盤量到的度數。畫面中的盤是範例：九運丑山未向下卦。</p>
+</main>
+
+<template id="phoneTpl">
+  <div class="g-phone">
+    <div class="phone">
+      <div class="screen">
+        <div class="status">
+          <svg width="420" height="68" viewBox="0 0 420 68" aria-hidden="true">
+            <text x="45.15" y="45.02" font-family="-apple-system, system-ui" font-size="17.9" font-weight="590" fill="currentColor">10:00</text>
+            <g fill="currentColor">
+              <rect x="298.33" y="38" width="3.67" height="7" rx="1.83"/>
+              <rect x="304.33" y="36" width="3.67" height="9" rx="1.83"/>
+              <rect x="310.33" y="33.33" width="3.67" height="11.67" rx="1.83"/>
+              <rect x="316.33" y="30.67" width="3.67" height="14.33" rx="1.83" fill-opacity=".25"/>
+              <svg x="327" y="30.67" width="20" height="14.67" viewBox="0.405 0 181.053 131.292"><path d="M12.802 56.573C14.608 58.477 17.511 58.446 19.353 56.444C38.387 36.332 63.125 25.789 90.917 25.789C118.904 25.789 143.74 36.398 162.743 56.573C164.451 58.348 167.256 58.251 169.098 56.378L180.191 45.32C181.838 43.607 181.833 41.321 180.449 39.675C161.735 16.477 126.947 0 90.917 0C54.953 0 20.165 16.477 1.385 39.675C0 41.321 0.062 43.607 1.709 45.32ZM44.975 88.32C46.976 90.326 49.75 90.096 51.721 87.996C61.109 77.809 75.891 70.822 90.917 70.888C106.138 70.822 120.946 78.071 130.534 88.32C132.309 90.291 134.857 90.162 136.925 88.254L149.319 76.304C150.899 74.755 151.059 72.527 149.674 70.813C137.365 56.188 115.233 45.654 90.917 45.654C66.6 45.654 44.468 56.188 32.226 70.813C30.775 72.527 30.868 74.622 32.581 76.304ZM90.948 131.293C93.052 131.293 94.796 130.356 98.045 127.236L117.079 108.921C118.593 107.438 118.917 104.957 117.501 103.248C111.797 96.018 101.89 90.473 90.948 90.473C79.677 90.473 69.584 96.311 63.884 104.021C62.886 105.503 63.432 107.5 64.918 108.921L83.85 127.236C87.1 130.289 88.91 131.293 90.948 131.293Z"/></svg>
+              <rect x="354.33" y="30.67" width="28.33" height="15" rx="3.7" fill-opacity=".3"/>
+              <rect x="354.33" y="30.67" width="25.78" height="15" rx="3.7"/>
+              <path d="M383.67 35.67h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1z" fill-opacity=".3"/>
+              <text x="368.13" y="43" text-anchor="middle" font-family="-apple-system, system-ui" font-size="13.7" font-weight="600" fill="#fff">91</text>
+            </g>
+          </svg>
+        </div>
+        <iframe loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        <div class="glass back" aria-hidden="true"><svg viewBox="0 0 76.562 136.133" preserveAspectRatio="none" fill="currentColor"><path d="M0 68.066C0 70.215 0.879 72.168 2.441 73.828L62.793 133.789C64.258 135.352 66.309 136.133 68.555 136.133C73.144 136.133 76.562 132.715 76.562 128.125C76.562 125.879 75.684 123.926 74.219 122.363L19.727 68.066L74.219 13.77C75.684 12.207 76.562 10.156 76.562 8.008C76.562 3.418 73.144 0 68.555 0C66.309 0 64.258 0.781 62.793 2.344L2.441 62.305C0.879 63.965 0 65.918 0 68.066Z"/></svg></div>
+        <div class="glass url" aria-hidden="true">
+          <svg class="pagemenu" viewBox="106 843 17 20"><g fill="#fff" opacity=".664"><rect x="106.34" y="843.66" width="8.67" height="9" rx="1.3"/><circle cx="114.67" cy="848" r="1.33"/></g><g stroke="#fff" stroke-width="1.67" stroke-linecap="round"><line x1="107.5" y1="857" x2="121.84" y2="857"/><line x1="107.5" y1="862.12" x2="116.5" y2="862.12"/></g></svg>
+          <span class="host">teal.com.tw</span>
+          <svg class="reload" viewBox="0 0 136.328 165.234" preserveAspectRatio="none" fill="currentColor"><path d="M68.164 165.234C105.859 165.234 136.328 134.668 136.328 96.972C136.328 93.066 133.105 89.941 129.297 89.941C125.488 89.941 122.266 93.066 122.266 96.972C122.266 126.855 98.047 150.976 68.164 150.976C38.281 150.976 14.062 126.855 14.062 96.972C14.062 67.09 38.281 42.871 68.164 42.871C74.512 42.871 80.566 43.847 86.23 45.898C90.723 47.656 96.094 45.117 96.094 39.551C96.094 34.961 92.676 33.496 90.43 32.715C83.496 30.176 75.976 28.906 68.164 28.906C30.469 28.906 0 59.375 0 97.07C0 134.668 30.469 165.234 68.164 165.234ZM87.695 38.379L61.23 64.355C59.863 65.625 59.277 67.48 59.277 69.238C59.277 73.242 62.305 76.269 66.113 76.269C68.359 76.269 69.922 75.488 71.191 74.316L102.051 43.457C103.418 42.09 104.101 40.43 104.101 38.379C104.101 36.523 103.32 34.668 102.051 33.398L71.191 2.148C69.922 0.879 68.262 0 66.113 0C62.305 0 59.277 3.223 59.277 7.226C59.277 9.082 59.863 10.937 61.133 12.207Z"/></svg>
+        </div>
+        <div class="glass tabs" aria-hidden="true"><svg viewBox="0 0 163.672 163.281" preserveAspectRatio="none" fill="currentColor"><mask id="tabsFront"><rect width="170" height="170" fill="#fff"/><path d="M62.012 163.281L138.769 163.281C155.371 163.281 163.672 155.176 163.672 138.77L163.672 61.231C163.672 44.824 155.371 36.719 138.769 36.719L62.012 36.719C45.312 36.719 37.109 44.824 37.109 61.231L37.109 138.77C37.109 155.176 45.312 163.281 62.012 163.281Z" fill="#000"/></mask><path mask="url(#tabsFront)" d="M24.902 126.563L101.66 126.563C118.262 126.563 126.562 118.457 126.562 102.051L126.562 24.512C126.562 8.106 118.262 0 101.66 0L24.902 0C8.203 0 0 8.106 0 24.512L0 102.051C0 118.457 8.203 126.563 24.902 126.563ZM25.098 112.5C18.066 112.5 14.062 108.691 14.062 101.27L14.062 25.293C14.062 17.871 18.066 14.063 25.098 14.063L101.465 14.063C108.496 14.063 112.5 17.871 112.5 25.293L112.5 101.27C112.5 108.691 108.496 112.5 101.465 112.5Z"/><path d="M62.012 163.281L138.769 163.281C155.371 163.281 163.672 155.176 163.672 138.77L163.672 61.231C163.672 44.824 155.371 36.719 138.769 36.719L62.012 36.719C45.312 36.719 37.109 44.824 37.109 61.231L37.109 138.77C37.109 155.176 45.312 163.281 62.012 163.281ZM62.207 149.219C55.176 149.219 51.172 145.41 51.172 137.988L51.172 62.012C51.172 54.59 55.176 50.781 62.207 50.781L138.574 50.781C145.605 50.781 149.609 54.59 149.609 62.012L149.609 137.988C149.609 145.41 145.605 149.219 138.574 149.219Z"/></svg></div>
+      </div>
+      <img class="frame" src="assets/iphone-air-frame.png" alt="">
+    </div>
+  </div>
+</template>
+
+<script>
+  const STEPS = [
+    ['welcome', '打開，按「開始」', '用手機的 Safari 打開網址，按「開始」。'],
+    ['year', '選落成年', '看建物謄本上的「建築完成日期」。1984、2004、2024 年會再問落成在立春前還是後。'],
+    ['permissions', '允許三個權限', '相機、位置、動作與方向。資料只在你的手機上計算，不會上傳。'],
+    ['calibrate8', '在空中畫幾次 8 字', '先校正手機羅盤，等一下才能帶你找到太陽。'],
+    ['sun', '對準太陽', '讓太陽落進中間的圓圈，圓圈變綠就按「校正」。看螢幕就好，不要直視太陽。'],
+    ['door', '手機底邊頂住大門', '手機平放、螢幕朝上，底邊貼住大門，按「記錄這一筆」。換兩、三個位置各記一筆。'],
+    ['result', '看量測結果', '坐向和度數，還有你的手機羅盤在大門偏了多少。'],
+    ['chart', '看你家的盤', '九宮飛星盤、每顆星的分類，以及初步結論。'],
+    ['palace', '點一宮看建議', '每一宮的人丁、財運強弱，以及這一方適合高還是低、動還是靜。'],
+  ];
+  const gallery = document.getElementById('gallery');
+  const tpl = document.getElementById('phoneTpl');
+  STEPS.forEach(([step, title, text], i) => {
+    const card = document.createElement('article');
+    card.className = 'g-card';
+    card.setAttribute('role', 'listitem');
+    const phone = tpl.content.firstElementChild.cloneNode(true);
+    const frame = phone.querySelector('iframe');
+    frame.title = title;
+    frame.src = `index.html?demo=${step}`;
+    card.append(phone);
+    card.insertAdjacentHTML('beforeend', `<p class="g-num">第 ${i + 1} 步</p><h2>${title}</h2><p class="text">${text}</p>`);
+    gallery.append(card);
+  });
+
+  // 示範畫面走到該步驟後才淡入；收不到通知時自己檢查，最多等 8 秒
+  const show = (f) => f.closest('.g-phone').classList.add('ready');
+  window.addEventListener('message', (e) => {
+    if (e.data?.type !== 'xk-demo-ready') return;
+    const f = [...gallery.querySelectorAll('iframe')].find((x) => x.contentWindow === e.source);
+    if (f) show(f);
+  });
+  gallery.querySelectorAll('iframe').forEach((f) => f.addEventListener('load', () => {
+    const t0 = Date.now();
+    const id = setInterval(() => {
+      let done = false;
+      try { done = !!f.contentWindow.__xkDemoReady; } catch { done = true; }
+      if (done || Date.now() - t0 > 8000) { clearInterval(id); show(f); }
+    }, 300);
+  }));
+
+  const prev = document.getElementById('prev'), next = document.getElementById('next');
+  const step = () => gallery.querySelector('.g-card').offsetWidth + 24;
+  prev.addEventListener('click', () => gallery.scrollBy({ left: -step(), behavior: 'smooth' }));
+  next.addEventListener('click', () => gallery.scrollBy({ left: step(), behavior: 'smooth' }));
+  const paint = () => {
+    prev.disabled = gallery.scrollLeft <= 2;
+    next.disabled = gallery.scrollLeft + gallery.clientWidth >= gallery.scrollWidth - 2;
+  };
+  gallery.addEventListener('scroll', paint, { passive: true });
+  window.addEventListener('resize', paint);
+  paint();
+</script>
+</body>
+</html>
